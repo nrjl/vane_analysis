@@ -7,12 +7,21 @@ import numpy as np
 
 class PlotItem(object):
     def __init__(self, name, items, multiplier=1.0,
-                 labels=['Measured', 'Tunnel']):
+                 labels=None):
         self.name = name
         self.items = items
-        self.multiplier = multiplier
-        assert len(labels) == len(items), print('len(labels) != len(items)')
-        self.labels = labels
+        if isinstance(multiplier, float):
+            self.multiplier = multiplier*np.ones(len(self.items))
+        else:
+            assert len(multiplier) == len(self.items)
+            self.multiplier = multiplier
+
+        if labels is None:
+            self.labels = ['{0}*{1:.4f}'.format(i, m) for i, m in zip(self.items, self.multiplier)]
+        else:
+            self.labels = labels
+        assert len(self.labels) == len(self.items), print('len(labels) != len(items)')
+
 
     def add_to_plot(self, axis, rec, time):
         y = np.hstack([to_numpy(rec, k) for k in self.items]) * self.multiplier
@@ -63,12 +72,12 @@ if __name__ == "__main__":
     parser.add_argument('base_dir', type=str, help='Base directory of deep stall data')
     args = parser.parse_args()
 
-    h5file = os.path.join(args.base_dir, 'Cal_Data_Set', 'Wind_Tunnel', 'WT_cal.h5')
+    h5file = os.path.join(args.base_dir, 'Raw_Data_Set', 'Wind_Tunnel', 'WT_raw.h5')
 
     # Generate a PlotItem for each thing you want to plot. You need to specify
     # the name, the list of item fields, a multiplier (for units) and the labels
     plot_items = [
-        PlotItem('Velocity [m/s]', ['airspeed_0.true_airspeed_m_s', 'wt.vel'],
+        PlotItem('Velocity [m/s]', ['airspeed_0.indicated_airspeed_m_s', 'wt.vel'],
                  1.0),
         PlotItem('Alpha [deg]', ['airflow_aoa_0.aoa_rad', 'wt.aoa'],
                  np.array([180.0/np.pi, 1])),
