@@ -80,9 +80,9 @@ if __name__ == "__main__":
         PlotItem('Velocity [m/s]', ['airspeed_0.indicated_airspeed_m_s', 'wt.vel'],
                  1.0),
         PlotItem('Alpha [deg]', ['airflow_aoa_0.aoa_rad', 'wt.aoa'],
-                 np.array([180.0/np.pi, 1])),
+                 180.0/np.pi),
         PlotItem('Beta [deg]', ['airflow_slip_0.slip_rad', 'wt.aos'],
-                 np.array([180.0/np.pi, 1]))]
+                 180.0/np.pi)]
 
     if args.all:
         f = h5py.File(h5file, "r")
@@ -94,5 +94,6 @@ if __name__ == "__main__":
         plot_records(h5file, '11_yaw_sweep_aoa_0', plot_items)
         plot_records(h5file, '11_yaw_sweep_aoa_5', plot_items)
         plot_records(h5file, '11_aoa_sweep_m5', plot_items)
+        plot_records(h5file, '15_yaw_sweep_aoa_0', plot_items)
 
     plt.show()
