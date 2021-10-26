@@ -10,18 +10,22 @@ class PlotItem(object):
                  labels=None):
         self.name = name
         self.items = items
-        if isinstance(multiplier, float):
-            self.multiplier = multiplier*np.ones(len(self.items))
+
+        # We want a multiplier for each item (if only one, assume all equal)
+        self.multiplier = np.atleast_1d(multiplier)
+        if len(self.multiplier) == 1:
+            self.multiplier = self.multiplier*np.ones(len(self.items))
         else:
             assert len(multiplier) == len(self.items)
             self.multiplier = multiplier
 
         if labels is None:
-            self.labels = ['{0}*{1:.4f}'.format(i, m) for i, m in zip(self.items, self.multiplier)]
+            self.labels = ['{0}*{1:.4f}'.format(i, m)
+                           for i, m in zip(self.items, self.multiplier)]
         else:
             self.labels = labels
-        assert len(self.labels) == len(self.items), print('len(labels) != len(items)')
-
+        assert len(self.labels) == len(self.items), \
+            print('len(labels) != len(items)')
 
     def add_to_plot(self, axis, rec, time):
         y = np.hstack([to_numpy(rec, k) for k in self.items]) * self.multiplier
@@ -66,27 +70,44 @@ def plot_records(h5_file, rec_name='11_yaw_sweep_aoa_0', items=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Plot vane offsets from wind tunnel data')
+    parser = argparse.ArgumentParser(
+        description='Plot vane offsets from wind tunnel data')
     parser.add_argument('-a', '--all', action='store_true',
                         help='Plot all records')
-    parser.add_argument('base_dir', type=str, help='Base directory of deep stall data')
+    parser.add_argument('-c', '--cal', action='store_true',
+                        help='Show calibrated data')
+    parser.add_argument('base_dir', type=str,
+                        help='Base directory of deep stall data')
     args = parser.parse_args()
 
-    h5file = os.path.join(args.base_dir, 'Raw_Data_Set', 'Wind_Tunnel', 'WT_raw.h5')
-
-    # Generate a PlotItem for each thing you want to plot. You need to specify
-    # the name, the list of item fields, a multiplier (for units) and the labels
+    # Generate a PlotItem for each thing you want to plot. You need to specify:
+    # - name
+    # - list of item fields
+    # - multiplier (for units, can be an array with value for each, optional)
+    # - labels (optional)
     plot_items = [
-        PlotItem('Velocity [m/s]', ['airspeed_0.indicated_airspeed_m_s', 'wt.vel'],
+        PlotItem('Velocity [m/s]',
+                 ['airspeed_0.indicated_airspeed_m_s', 'wt.vel'],
                  1.0),
-        PlotItem('Alpha [deg]', ['airflow_aoa_0.aoa_rad', 'wt.aoa'],
+        PlotItem('Alpha [deg]',
+                 ['airflow_aoa_0.aoa_rad', 'wt.aoa'],
                  180.0/np.pi),
-        PlotItem('Beta [deg]', ['airflow_slip_0.slip_rad', 'wt.aos'],
+        PlotItem('Beta [deg]',
+                 ['airflow_slip_0.slip_rad', 'wt.aos'],
                  180.0/np.pi)]
+
+    if args.cal:
+        h5file = os.path.join(args.base_dir, 'Cal_Data_Set', 'Wind_Tunnel',
+                              'WT_cal.h5')
+    else:
+        h5file = os.path.join(args.base_dir, 'Raw_Data_Set', 'Wind_Tunnel',
+                              'WT_raw.h5')
+        # Sign is flipped for slip sensor
+        plot_items[2].multiplier = 180.0/np.pi*np.array([-1, 1])
 
     if args.all:
         f = h5py.File(h5file, "r")
-        record_names = list(f.keys())
+        record_names = list(f.keys())       # Also useful to see all records
         f.close()
         for rec_name in record_names:
             plot_records(h5file, rec_name, plot_items)
